@@ -1,1 +1,1 @@
-# sui-pfp-nft
+# SUI chain based NFT contract
