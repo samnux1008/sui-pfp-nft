@@ -1,4 +1,4 @@
-module sui_nft::pfp_nft {
+module pfp_nft::pfp_nft {
 
   use std::vector;
   use sui::url::{Self, Url};
@@ -20,9 +20,12 @@ module sui_nft::pfp_nft {
     id: UID, 
     tokenId: u64,
     name: string::String, 
-    image: string::String,
     type: string::String,
+    description: string::String,
+    desc: string::String,
     url: Url,
+    link: Url,
+    metadata: Url,
   }
 
   struct Owner has store, copy, drop {
@@ -36,7 +39,7 @@ module sui_nft::pfp_nft {
     tokenId: u64,
     name: string::String,
     uri: Url,
-    image: string::String,
+    image: Url,
     mimeType: string::String,
     timestamp: u64
   }
@@ -46,7 +49,7 @@ module sui_nft::pfp_nft {
     tokenId: u64,
     name: string::String,
     uri: Url,
-    image: string::String,
+    image: Url,
     mimeType: string::String,
     timestamp: u64
   }
@@ -67,7 +70,7 @@ module sui_nft::pfp_nft {
   }
 
   fun init(ctx: &mut TxContext) {
-    transfer::transfer(SettingCap {
+    transfer::share_object(SettingCap {
       id: object::new(ctx),
       owner: tx_context::sender(ctx),
       holder: tx_context::sender(ctx),
@@ -80,7 +83,7 @@ module sui_nft::pfp_nft {
       history: vector[],
       uris: vector[],
       owners: vector[]
-    }, tx_context::sender(ctx));
+    });
   }
 
   public entry fun set_minter(
@@ -174,9 +177,11 @@ module sui_nft::pfp_nft {
    // create and mint a new NFT
   public entry fun mint(
     name: vector<u8>, 
-    image: vector<u8>, 
     type: vector<u8>, 
+    desc: vector<u8>,
     url: vector<u8>, 
+    link: vector<u8>,
+    meta: vector<u8>,
     count: u64, 
     payment: Coin<SUI>, 
     setting: &mut SettingCap, 
@@ -217,9 +222,12 @@ module sui_nft::pfp_nft {
         id: object::new(ctx),
         tokenId: newTokenId,
         name: string::utf8(name),
-        image: string::utf8(image),
         type: string::utf8(type),
-        url: url::new_unsafe_from_bytes(url)
+        description: string::utf8(desc),
+        desc: string::utf8(desc),
+        url: url::new_unsafe_from_bytes(url),
+        link: url::new_unsafe_from_bytes(link),
+        metadata: url::new_unsafe_from_bytes(meta)
       };
 
       event::emit(Minted {
@@ -228,7 +236,7 @@ module sui_nft::pfp_nft {
         tokenId: nft.tokenId,
         name: nft.name,
         uri: nft.url,
-        image: nft.image,
+        image: nft.link,
         mimeType: nft.type,
         timestamp: tx_context::epoch(ctx)
       });
@@ -238,7 +246,7 @@ module sui_nft::pfp_nft {
         tokenId: nft.tokenId,
         name: nft.name,
         uri: nft.url,
-        image: nft.image,
+        image: nft.link,
         mimeType: nft.type,
         timestamp: tx_context::epoch(ctx)
       });
