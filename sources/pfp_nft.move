@@ -2,7 +2,7 @@ module pfp_nft::pfp_nft {
 
   use std::vector;
   use sui::url::{Self, Url};
-  use std::string;
+  use std::string::{utf8, String};
   use sui::object::{Self, UID, ID};
   use sui::transfer;
   use sui::tx_context::{Self, TxContext};
@@ -10,6 +10,8 @@ module pfp_nft::pfp_nft {
   use sui::sui::SUI;
   // use sui::balance::{Self, Balance};
   use sui::event;
+  use sui::package;
+  use sui::display;
 
   const EInsufficientPayment: u64 = 11;
   const ECallerNotOwner: u64 = 12;
@@ -19,14 +21,16 @@ module pfp_nft::pfp_nft {
   struct NFT has key, store {
     id: UID, 
     tokenId: u64,
-    name: string::String, 
-    type: string::String,
-    description: string::String,
-    desc: string::String,
+    name: String, 
+    type: String,
+    description: String,
     url: Url,
+    image_url: Url,
     link: Url,
     metadata: Url,
   }
+
+  struct PFP_NFT has drop {}
 
   struct Owner has store, copy, drop {
     tokenId: u64,
@@ -37,20 +41,20 @@ module pfp_nft::pfp_nft {
     id: ID,
     to: address,
     tokenId: u64,
-    name: string::String,
+    name: String,
     uri: Url,
     image: Url,
-    mimeType: string::String,
+    mimeType: String,
     timestamp: u64
   }
 
   struct MintHistory has store, copy, drop {
     to: address,
     tokenId: u64,
-    name: string::String,
+    name: String,
     uri: Url,
     image: Url,
-    mimeType: string::String,
+    mimeType: String,
     timestamp: u64
   }
 
@@ -69,7 +73,7 @@ module pfp_nft::pfp_nft {
     owners: vector<Owner>
   }
 
-  fun init(ctx: &mut TxContext) {
+  fun init(otw: PFP_NFT, ctx: &mut TxContext) {
     transfer::share_object(SettingCap {
       id: object::new(ctx),
       owner: tx_context::sender(ctx),
@@ -84,6 +88,34 @@ module pfp_nft::pfp_nft {
       uris: vector[],
       owners: vector[]
     });
+
+    let keys = vector[
+      utf8(b"name"),
+      utf8(b"description"),
+      utf8(b"image_url"),
+      utf8(b"link")
+    ];
+
+    let values = vector[
+      utf8(b"{name}"),
+      utf8(b"{description}"),
+      utf8(b"{url}"),
+      utf8(b"{link}"),
+    ];
+
+     // Claim the `Publisher` for the package!
+    let publisher = package::claim(otw, ctx);
+
+    // Get a new `Display` object for the `NFT` type.
+    let display = display::new_with_fields<NFT>(
+        &publisher, keys, values, ctx
+    );
+
+    // Commit first version of `Display` to apply changes.
+    display::update_version(&mut display);
+
+    transfer::public_transfer(publisher, tx_context::sender(ctx));
+    transfer::public_transfer(display, tx_context::sender(ctx));
   }
 
   public entry fun set_minter(
@@ -221,11 +253,11 @@ module pfp_nft::pfp_nft {
       let nft = NFT {
         id: object::new(ctx),
         tokenId: newTokenId,
-        name: string::utf8(name),
-        type: string::utf8(type),
-        description: string::utf8(desc),
-        desc: string::utf8(desc),
+        name: utf8(name),
+        type: utf8(type),
+        description: utf8(desc),
         url: url::new_unsafe_from_bytes(url),
+        image_url: url::new_unsafe_from_bytes(url),
         link: url::new_unsafe_from_bytes(link),
         metadata: url::new_unsafe_from_bytes(meta)
       };
