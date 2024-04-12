@@ -118,6 +118,17 @@ module pfp_nft::pfp_nft {
     transfer::public_transfer(display, tx_context::sender(ctx));
   }
 
+  public entry fun transfer_ownership(
+    owner: address,
+    setting: &mut SettingCap,
+    ctx: &mut TxContext
+  ) {
+    let sender = tx_context::sender(ctx);
+    assert!(setting.owner == sender, ECallerNotOwner);
+
+    setting.owner = owner;
+  }
+
   public entry fun set_minter(
     minter: address, 
     flag: bool,
